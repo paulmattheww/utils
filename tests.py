@@ -12,6 +12,27 @@ from pandas import read_excel, read_parquet
 from utils.hash_str import hash_str, get_csci_salt, get_user_id
 from utils.io import atomic_write
 
+class FakeFileFailure(IOError):
+    pass
+
+
+class HashTests(TestCase):
+
+    def test_basic(self):
+        self.assertEqual(
+            hash_str('world!', salt='hello, ')[:6], b'68e656')
+
+    def test_get_salt(self):
+        self.assertEqual(get_csci_salt()[:8],  b'3f87b3a5')
+
+    def test_get_user_id(self):
+        self.assertEqual(get_user_id("thisispawbz"), '34616539')
+
+    def test_no_nacl(self):
+        self.assertEqual(
+            hash_str('this is NOT salted!')[:6], b'1e1a41')
+
+
 class TestAtomics(TestCase):
 
     def test_writer(self):
