@@ -9,7 +9,7 @@ from unittest import TestCase
 
 from pandas import read_excel, read_parquet
 
-from utils.hash_str import hash_str, get_csci_salt, get_user_id
+from utils.text.dlp import hash_str
 from utils.io import atomic_write
 
 class FakeFileFailure(IOError):
