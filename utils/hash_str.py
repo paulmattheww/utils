@@ -2,14 +2,6 @@
 import hashlib
 import os
 
-def get_csci_salt():
-    """Returns the appropriate salt for CSCI E-29
-
-    :rtype: bytes
-    """
-    salt = os.environ["CSCI_SALT"].encode()
-    return salt
-
 
 def hash_str(some_val, salt=''):
     """Converts strings to hash digest
@@ -43,13 +35,3 @@ def hash_str(some_val, salt=''):
     m = hashlib.sha256(salt_bytes)
     m.update(some_val_bytes)
     return m.hexdigest().encode()
-
-
-def get_user_id(username):
-    """Fetches last 8 of hash_str(username) with salt
-    specified from .env file.
-
-    :param str username:  username in question
-    """
-    salt = get_csci_salt().decode("utf-8")
-    return hash_str(username.lower(), salt=salt).hex()[:8]
