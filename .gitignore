@@ -3,6 +3,14 @@
 ..
 .env
 
+<<<<<<< HEAD
+=======
+utils/__pycache__/
+utils/*/__pycache__/
+utils/*/*/__pycache/
+
+# Boilerplate
+>>>>>>> develop
 # Temp stuff
 tmp/
 
@@ -108,3 +116,7 @@ ENV/
 
 # mypy
 .mypy_cache/
+<<<<<<< HEAD
+=======
+
+>>>>>>> develop
