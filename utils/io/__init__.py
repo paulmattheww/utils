@@ -1,12 +1,37 @@
+
+from atomicwrites import atomic_write as _backend_writer, AtomicWriter
 from contextlib import contextmanager
-import uuid
+import tempfile
 import os
-import shutil
-from pathlib import Path
+import io
+import psutil
+
+class SuffixWriter(AtomicWriter):
+
+    def get_fileobject(self, suffix=None, prefix=tempfile.template, dir=None,
+                       **kwargs):
+        '''Return the temporary file to use ensuring suffix persists.'''
+        if suffix is None:
+            suffix = "." + str(self._path).split(".")[-1]
+        elif not suffix.startswith("."):
+            suffix = "." + suffix
+        else:
+            raise ValueError("Must specify a suffix as '.suffix'")
+        if dir is None:
+            dir = os.path.normpath(os.path.dirname(self._path))
+        descriptor, name = tempfile.mkstemp(suffix=suffix, prefix=prefix,
+                                            dir=dir)
+        # io.open() will take either the descriptor or the name, but we need
+        # the name later for commit()/replace_atomic() and couldn't find a way
+        # to get the filename from the descriptor.
+        os.close(descriptor)
+        kwargs['mode'] = "w" #always a writer
+        kwargs['file'] = name
+        return io.open(**kwargs)
 
 
 @contextmanager
-def atomic_write(file, mode='w', as_file=True, ext=".txt", **kwargs):
+def atomic_write(file, as_file=True, **cls_kwargs):
     """Write a file atomically
 
     :param file: str or :class:`os.PathLike` target to write
@@ -23,28 +48,23 @@ def atomic_write(file, mode='w', as_file=True, ext=".txt", **kwargs):
 
         with atomic_write("hello.txt") as f:
             f.write("world!")
-
     """
-    # make os.path objects for temporary file and target file
-    tmpfile = os.path.join(os.getcwd(), "tmp", str(uuid.uuid4()) + ext)
-    target_file = os.path.join(os.getcwd(), file)
 
-    # create empty file then open context
-    if not os.path.exists("tmp"):
-        os.makedirs("tmp")
-    Path(tmpfile).touch()
-    tmp = open(tmpfile, mode, **kwargs)
-
-    try:
+    # You can override things just fine...
+    with _backend_writer(file, writer_cls=SuffixWriter, **cls_kwargs) as tmp:
         if as_file:
             yield tmp
-            tmp.flush()
-            os.fsync(tmp.fileno())
-            tmp.close()
         else:
-            yield str(tmp.name)
-            tmp.flush()
-            os.fsync(tmp.fileno())
-            tmp.close()
-    finally:
-        shutil.move(tmpfile, target_file)
+            yield tmp.name
+
+
+def memory():
+    '''
+    Measure memory usage; modified from:
+    https://stackoverflow.com/questions/938733/total-memory-used-by-python-process
+    '''
+    #w = WMI('.')
+    #result = w.query("SELECT WorkingSet FROM Win32_PerfRawData_PerfProc_Process WHERE IDProcess=%d" % os.getpid())
+    result = psutil.virtual_memory()[3]
+
+    return result#int(result[0].WorkingSet)
