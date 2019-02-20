@@ -77,25 +77,25 @@ class AtomicWriteTests(TestCase):
             with open(fp) as f:
                 self.assertEqual(f.read(), 'asdf')
 
-    def test_parquet_atomic_write(self):
-        """Ensure parquet file exists after being written successfully"""
-        df = read_excel("data/hashed.xlsx")
-        first_5_xlsx = df["hashed_id"].head().tolist()
-
-        with TemporaryDirectory() as tmp:
-            fp = os.path.join(tmp, 'test.parquet')
-            assert not os.path.exists(fp)
-
-            with atomic_write(fp, ext=".parquet") as f:
-                fname = f.name
-                df.to_parquet(fname)
-
-            assert os.path.exists(fp)
-
-            df = read_parquet(fp)
-            first_5_parquet = df["hashed_id"].head().tolist()
-
-            assert first_5_parquet == first_5_xlsx
+    # def test_parquet_atomic_write(self):
+    #     """Ensure parquet file exists after being written successfully"""
+    #     df = read_excel("data/hashed.xlsx")
+    #     first_5_xlsx = df["hashed_id"].head().tolist()
+    #
+    #     with TemporaryDirectory() as tmp:
+    #         fp = os.path.join(tmp, 'test.parquet')
+    #         assert not os.path.exists(fp)
+    #
+    #         with atomic_write(fp, ext=".parquet") as f:
+    #             fname = f.name
+    #             df.to_parquet(fname)
+    #
+    #         assert os.path.exists(fp)
+    #
+    #         df = read_parquet(fp)
+    #         first_5_parquet = df["hashed_id"].head().tolist()
+    #
+    #         assert first_5_parquet == first_5_xlsx
 
     def test_atomic_failure(self):
         """Ensure that file does not exist after failure during write"""
