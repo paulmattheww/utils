@@ -19,12 +19,10 @@ ENV \
 RUN pip install pipenv
 
 WORKDIR /build
-COPY README.rst .
-COPY HISTORY.rst .
 COPY Pipfile .
 COPY Pipfile.lock .
 COPY setup.py .
-COPY pset_utils/__init__.py src/pset_utils/__init__.py
+COPY utils/__init__.py src/utils/__init__.py
 RUN pipenv install --system --deploy --ignore-pipfile --dev
 
 # --ignore-pipfile --dev
