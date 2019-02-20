@@ -2,6 +2,7 @@
 Dockerfile
 HISTORY.rst
 Pipfile
+Pipfile.lock
 README.md
 docker-compose.yml
 drun_app
