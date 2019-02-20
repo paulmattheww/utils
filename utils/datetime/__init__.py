@@ -29,21 +29,21 @@ def generate_calendar(year, drop_index=False):
     return cal_df
 
 def make_calendars(year_list, drop_index):
+    """
+    Example:
+        year_list = ['2016', '2017', '2018']
+        cal_df = make_calendars(year_list, drop_index=True)
+        cal_df.head()
+    """
     cal_df = pd.DataFrame()
     for year in year_list:
         cal_df = cal_df.append(generate_calendar(year, drop_index=drop_index))
     return cal_df
 
-# year_list = ['2016', '2017', '2018']
-# cal_df = make_calendars(year_list, drop_index=True)
-# cal_df.head()
 
 def force_datetime(dat):
     try:
         dat = pd.to_datetime(str(dat))
     except:
         dat = pd.to_datetime("NaT")
-
     return dat
-
-drop_comma = lambda n: str(n).replace(",", "")
