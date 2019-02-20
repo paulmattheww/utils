@@ -3,6 +3,7 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 import seaborn as sns
 import numpy as np
+from numpy.random import randint
 
 def boxplot_columns_over_groups(df, cols_to_boxplot, unique_groups,
                                 grpcol_name, treatment_col,
@@ -30,3 +31,6 @@ def random_hex(seed):
     np.random.seed(seed)
     r = lambda: random.randint(0, 255)
     return '#%02X%02X%02X' % (r(),r(),r())
+
+def random_rgb():
+    return 'rgb({}, {}, {})'.format(randint(0, 255), randint(0, 255), randint(0, 255))
