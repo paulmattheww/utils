@@ -1,0 +1,7 @@
+atomicwrites
+hashfile
+pandas
+numpy
+matplotlib
+seaborn
+sklearn
