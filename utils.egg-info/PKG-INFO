@@ -1,0 +1,21 @@
+Metadata-Version: 1.1
+Name: utils
+Version: 0.1.1.dev5+gdbfe484
+Summary: Package of utilities from HES.
+Home-page: UNKNOWN
+Author: Paul M. Washburn
+Author-email: paulmattheww
+License: MIT license
+Description: # `utils`
+        ---------
+        
+        
+        
+Keywords: utils
+Platform: UNKNOWN
+Classifier: Development Status :: 2 - Pre-Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Natural Language :: English
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
