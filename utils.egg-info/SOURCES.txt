@@ -22,6 +22,7 @@ utils/geospatial/__init__.py
 utils/io/__init__.py
 utils/ml/__init__.py
 utils/ml/metrics/__init__.py
+utils/ml/pipeline/__init__.py
 utils/plotting/__init__.py
 utils/profiling/__init__.py
 utils/text/__init__.py
