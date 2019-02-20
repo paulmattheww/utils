@@ -15,7 +15,8 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['atomicwrites', 'hashfile', ]
+requirements = ['atomicwrites', 'hashfile', 'pandas', 'numpy',
+'matplotlib', 'seaborn', 'sklearn' ]
 
 setup_requirements = ['pytest-runner', 'setuptools_scm', ]
 
