@@ -8,6 +8,23 @@ from sklearn.model_selection import learning_curve
 import matplotlib.dates as mdates
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+def correlation_heatmap(df, cutoff=None, title='', outpath=None):
+    df_corr = df.corr('pearson')
+    np.fill_diagonal(df_corr.values, 0)
+    if cutoff != None:
+        for col in df_corr.columns:
+            df_corr.loc[df_corr[col].abs() <= cutoff, col] = 0
+    fig, ax = plt.subplots(figsize=(20, 15))
+    sns.heatmap(df_corr, ax=ax, cmap='RdBu_r')
+    plt.suptitle(title, size=18)
+    if outpath == None:
+        pass
+    else:
+        plt.savefig(outpath)
+    plt.show()
+    return df_corr
+
+
 
 def boxplot_columns_over_groups(df, cols_to_boxplot, unique_groups,
                                 grpcol_name, treatment_col,
