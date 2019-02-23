@@ -16,7 +16,8 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = ['atomicwrites', 'hashfile', 'pandas', 'numpy',
-'matplotlib', 'seaborn', 'sklearn', 'tld', 'spacy' ]
+                'matplotlib', 'seaborn', 'sklearn', 'tld', 'spacy',
+                'tensorflow', 'tensorflow-hub', 'nltk']
 
 setup_requirements = ['pytest-runner', 'setuptools_scm', ]
 
