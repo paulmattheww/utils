@@ -7,3 +7,6 @@ seaborn
 sklearn
 tld
 spacy
+tensorflow
+tensorflow-hub
+nltk
