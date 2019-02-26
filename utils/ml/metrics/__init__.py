@@ -103,3 +103,37 @@ def multiclass_confusion_matrix(y, yhat, model_name='unspecified',
         return None
 
     return cm, metrics
+
+
+
+def train_val_metrics(grid, X_train, X_val, y_train, y_val):
+    # check train data
+    y_pred_train, y_pred_val = grid.predict(X_train), grid.predict(X_val)
+
+    train_acc, train_f1 = accuracy_score(y_pred_train, y_train), f1_score(y_pred_train, y_train, average='macro')
+    print('''
+    Training Accuracy = %.4f
+    Training F1 Score = %.4f
+    ''' %(train_acc, train_f1))
+
+    _ = multiclass_confusion_matrix(y_train, y_pred_train)
+
+    skplt.metrics.plot_roc_curve(y_train, grid.predict_proba(X_train))
+    ax = plt.gca()
+    ax.set_title('Training Results')
+    plt.show()
+
+    # check validation data
+    val_acc, val_f1 = accuracy_score(y_pred_val, y_val), f1_score(y_pred_val, y_val, average='macro')
+
+    print('''
+    Validation Accuracy = %.4f
+    Validation F1 Score = %.4f
+    ''' %(val_acc, val_f1))
+
+    _ = multiclass_confusion_matrix(y_val, y_pred_val)
+
+    skplt.metrics.plot_roc_curve(y_val, grid.predict_proba(X_val))
+    ax = plt.gca()
+    ax.set_title('Validation Results')
+    plt.show()
