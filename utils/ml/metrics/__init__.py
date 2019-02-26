@@ -1,4 +1,4 @@
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, accuracy_score, f1_score
 from pandas import DataFrame
 import pandas as pd
 
