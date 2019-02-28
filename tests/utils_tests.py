@@ -8,9 +8,19 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase
 
 from pandas import read_excel, read_parquet
+import numpy as np
 
 from utils.text.dlp import hash_str
 from utils.io import atomic_write
+from utils.ml.metrics import multiclass_confusion_matrix, binary_confusion_matrix
+
+
+class TestMlModule(TestCase):
+     def test_multiclass_confusion_matric(self):
+         cm = None
+         try:
+             cm = multiclass_confusion_matrix(np.random.randint(0,5,20), np.random.randint(0,5,20))
+         self.assertEqual()
 
 class FakeFileFailure(IOError):
     pass
