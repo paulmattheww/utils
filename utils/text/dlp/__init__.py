@@ -1,6 +1,33 @@
 # Import statements
 import hashlib
 import os
+import re
+
+def basic_dlp_str(text):
+    """
+    DESCR: Take a single value and send it to the api
+    INPUT: text - str - piece of text to apply dlp to
+    OUTPUT: str - lots of stuff, only take results
+    """
+    assert isinstance(text, str)
+    # First pass at ssn and phone to keep API costs down
+    # as well as eliminate items we know the API misses
+    # basic regex ssn and phone formats
+    re_dict = dict(basic_ssn_format = [r"\d{3}-\d{2}-\d{4}", "***-**-****"],
+                   basic_ssn_nodashes_format = [r"\d{9}", "*********"],
+                   basic_ssn_per_format = [r"\d{3}.\d{2}.\d{4}", "***.**.****"],
+                   basic_tel10_format = [r"\d{3}-\d{3}-\d{4}", "***-***-****"],
+                   basic_tel10_par_format = [r"\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}", "(***) ***-****"],
+                   basic_tel10_dot_format = [r"\d{3}.\d{3}.\d{4}", "***.***.****"],
+                   basic_tel10_nodashes_format = [r"\d{10}", "**********"],
+                   basic_tel7_format = [r"\d{3}-\d{4}", "***-****"],
+                   basic_tel7_nodashes_format = [r"\d{7}", "*******"],
+                   )
+    for k, criteria in re_dict.items():
+        pattern = re.compile(criteria[0])
+        text = re.sub(pattern, criteria[1], text)
+    return text
+
 
 
 def hash_str(some_val, salt=''):
