@@ -9,7 +9,7 @@ def basic_dlp_str(text):
     INPUT: text - str - piece of text to apply dlp to
     OUTPUT: str - lots of stuff, only take results
     """
-    assert isinstance(text, str)
+    assert isinstance(text, str), TypeError("Must pass <str>!")
     # First pass at ssn and phone to keep API costs down
     # as well as eliminate items we know the API misses
     # basic regex ssn and phone formats
