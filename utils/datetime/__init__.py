@@ -1,5 +1,15 @@
 import pandas as pd
 
+def derive_years(now, prior):
+    """Retrive the distance between two dates.
+    Must pass Series as datetime (use pd.datetime).
+
+    ARGS:
+        - now: Series of datetime
+        - prior: Series of datetime
+    """
+    return round((now - prior).dt.days / 365.25, 1)
+
 def generate_calendar(year, drop_index=False):
     '''
     Simple function to generate a calendar containing
