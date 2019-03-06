@@ -1,5 +1,8 @@
 import pandas as pd
 
+def datetime_days_to_float(dat):
+    return str(dat).split(" days")[0]
+
 def derive_years(now, prior):
     """Retrive the distance between two dates.
     Must pass Series as datetime (use pd.datetime).
@@ -8,7 +11,12 @@ def derive_years(now, prior):
         - now: Series of datetime
         - prior: Series of datetime
     """
-    return round((now - prior).dt.days / 365.25, 1)
+    try:
+        years = round((now - prior).dt.days / 365.25, 1)
+    except AttributeError:
+        years = round((now - prior) / 365.25, 1)
+
+    return years
 
 def generate_calendar(year, drop_index=False):
     '''
