@@ -16,6 +16,7 @@ utils.egg-info/dependency_links.txt
 utils.egg-info/not-zip-safe
 utils.egg-info/requires.txt
 utils.egg-info/top_level.txt
+utils/api/google/__init__.py
 utils/datetime/__init__.py
 utils/financial/__init__.py
 utils/geospatial/__init__.py
@@ -26,4 +27,5 @@ utils/ml/pipeline/__init__.py
 utils/plotting/__init__.py
 utils/profiling/__init__.py
 utils/text/__init__.py
+utils/text/cleanup/__init__.py
 utils/text/dlp/__init__.py
