@@ -8,9 +8,27 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase
 
 from pandas import read_excel, read_parquet
+import numpy as np
 
-from utils.text.dlp import hash_str
+from utils.text.dlp import hash_str, basic_dlp_str
 from utils.io import atomic_write
+from utils.ml.metrics import multiclass_confusion_matrix, binary_confusion_matrix
+
+
+# class TestMlModule(TestCase):
+#      def test_multiclass_confusion_matric(self):
+#          cm = None
+#          try:
+#              cm = multiclass_confusion_matrix(np.random.randint(0,5,20), np.random.randint(0,5,20))
+#          self.assertEqual()
+
+
+class TextTests(TestCase):
+
+    def test_hashstr_dlp_simultaneously(self):
+        txt = "This is a text with 5209065435 and my ss 602581777, so is my phone be (520) 906-5495 and 707-12-1322"
+        hsh = hash_str(basic_dlp_str(txt))
+        self.assertEqual(hsh, b'8a45a54b64ec6c3f633d59c019fe04dd06fd14518c52e147727e9d12e5ad4df4')
 
 class FakeFileFailure(IOError):
     pass
@@ -21,12 +39,6 @@ class HashTests(TestCase):
     def test_basic(self):
         self.assertEqual(
             hash_str('world!', salt='hello, ')[:6], b'68e656')
-
-    def test_get_salt(self):
-        self.assertEqual(get_csci_salt()[:8],  b'3f87b3a5')
-
-    def test_get_user_id(self):
-        self.assertEqual(get_user_id("thisispawbz"), '34616539')
 
     def test_no_nacl(self):
         self.assertEqual(
