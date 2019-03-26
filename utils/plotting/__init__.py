@@ -8,6 +8,24 @@ from sklearn.model_selection import learning_curve
 import matplotlib.dates as mdates
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+def rf_feature_importances(forest, title='', outpath=None):
+    '''Derive feature importances from an sklearn.ensemble.RandomForestClassifier
+    model and plots them in descending order for review and analysis.
+    '''
+    importances = forest.feature_importances_
+    feats = {}
+    for feature, importance in zip(X_train.columns, importances):
+        feats[feature] = importance
+
+    pd.Series(feats).sort_values().plot(kind="barh")
+    ax = plt.gca()
+    sns.despine()
+    ax.set_title(title)
+    if outpath:
+        plt.savefig(outpath)
+    plt.show()
+
+
 def correlation_heatmap(df, cutoff=None, title='', outpath=None):
     df_corr = df.corr('pearson')
     np.fill_diagonal(df_corr.values, 0)
@@ -23,7 +41,6 @@ def correlation_heatmap(df, cutoff=None, title='', outpath=None):
         plt.savefig(outpath)
     plt.show()
     return df_corr
-
 
 
 def boxplot_columns_over_groups(df, cols_to_boxplot, unique_groups,

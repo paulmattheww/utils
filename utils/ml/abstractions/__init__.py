@@ -2,13 +2,17 @@
 
 
 class MLData:
-    def __init__(self, df, cat_cols, num_cols, bin_cols, target_col, int_cols=[]):
+    """Accounting mechanism for Machine Learning datasets.
+    Stores information about the data
+    """
+    def __init__(self, df, cat_cols, num_cols, bin_cols, int_cols, target_col, seed=777):
         self.df = df
         self.cat_cols = cat_cols
         self.num_cols = num_cols
         self.bin_cols = bin_cols
         self.int_cols = int_cols
         self.target_col = target_col
+        self.seed = seed
         self.features = None
 
     @property
