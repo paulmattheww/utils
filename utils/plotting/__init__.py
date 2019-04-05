@@ -9,16 +9,19 @@ import matplotlib.dates as mdates
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
-def bivariate_violinplots_over_binary_groups(df, binary_cols, target_col, boxenplot=True):
+def target_distribution_over_binary_groups(df, binary_cols, target_col, plot_type='boxenplot', **plot_kwargs):
     '''For use during feature engineering.  Pass a DataFrame
     with a list of `binary_cols` that represent the names of columns
     that are binary categories.  The `target_col` str is the variable
     you are trying to model.  Requires seaborn >= 0.9.0.
     '''
-    for col in grp_cols_of_interest:
-        if boxenplot:
-            sns.boxenplot(y=df[target_col], x=df[col])
-        sns.violinplot(y=df[target_col], x=df[col])
+    for col in binary_cols:
+        if plot_type=='boxenplot':
+            sns.boxenplot(y=df[target_col], x=df[col], **plot_kwargs)
+        elif plot_type=='violinplot':
+            sns.violinplot(y=df[target_col], x=df[col], **plot_kwargs)
+        else:
+            sns.boxplot(y=df[target_col], x=df[col], **plot_kwargs)
         ax = plt.gca()
         mu0, mu1 = df[target_col].groupby(df[col]).mean()
         sd0, sd1 = df[target_col].groupby(df[col]).std()
