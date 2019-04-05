@@ -3,6 +3,22 @@ from pandas import DataFrame
 import pandas as pd
 import numpy as np
 
+def analyze_binary_prediction_probabilities(model, X, y, bins=10):
+    '''Compiles predictions vs. actuals for a binary model
+    that has a model.predict_proba() method.  Bins the prediction
+    probabilities for further analysis and tags correct answers.
+
+    ARGS:     model, X, y
+    KWARGS:   bins
+    RETURNS:  DataFrame
+    '''
+    pred_df = pd.DataFrame({'prediction': model.predict(X), 'label': y})
+    pred_df['prediction_probability'] = model.predict_proba(X)[:, 1]
+    pred_df['probability_bin'] = pd.cut(pred_df['prediction_probability'], bins=bins)
+    pred_df['correct'] = pred_df.prediction == pred_df.label
+
+    return pred_df
+
 def binary_confusion_matrix(y, y_hat, as_pct=False, verbose=True):
     cm = pd.DataFrame(confusion_matrix(y, y_hat),
                       columns=['(+) actual', '(-) actual'],
