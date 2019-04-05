@@ -8,6 +8,31 @@ from sklearn.model_selection import learning_curve
 import matplotlib.dates as mdates
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+
+def bivariate_violinplots_over_binary_groups(df, binary_cols, target_col, boxenplot=True):
+    '''For use during feature engineering.  Pass a DataFrame
+    with a list of `binary_cols` that represent the names of columns
+    that are binary categories.  The `target_col` str is the variable
+    you are trying to model.  Requires seaborn >= 0.9.0.
+    '''
+    for col in grp_cols_of_interest:
+        if boxenplot:
+            sns.boxenplot(y=df[target_col], x=df[col])
+        sns.violinplot(y=df[target_col], x=df[col])
+        ax = plt.gca()
+        mu0, mu1 = df[target_col].groupby(df[col]).mean()
+        sd0, sd1 = df[target_col].groupby(df[col]).std()
+        ncol = df.loc[df[col]==1].shape[0]
+        ax.axhline(mu0, label=f'mean = {round(mu0, 2)}|{col} = 0', color='blue', linestyle=':')
+        ax.axhline(mu1, label=f'mean = {round(mu1, 2)}|{col} = 1 with {ncol} observations',
+                   color='orange', linestyle='-.')
+        ax.grid(alpha=.4)
+        ax.set_title(col)
+        sns.despine()
+        ax.legend(loc='best')
+        plt.show()
+
+
 def rf_feature_importances(forest, title='', outpath=None, use_top=None, figsize=(13, 8)):
     '''Derive feature importances from an sklearn.ensemble.RandomForestClassifier
     model and plots them in descending order for review and analysis.
