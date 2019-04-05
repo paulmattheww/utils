@@ -8,7 +8,7 @@ from sklearn.model_selection import learning_curve
 import matplotlib.dates as mdates
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-def rf_feature_importances(forest, title='', outpath=None):
+def rf_feature_importances(forest, title='', outpath=None, use_top=None, figsize=(13, 8)):
     '''Derive feature importances from an sklearn.ensemble.RandomForestClassifier
     model and plots them in descending order for review and analysis.
     '''
@@ -17,7 +17,11 @@ def rf_feature_importances(forest, title='', outpath=None):
     for feature, importance in zip(X_train.columns, importances):
         feats[feature] = importance
 
-    pd.Series(feats).sort_values().plot(kind="barh")
+    fig, ax = plt.subplots(figsize=figsize)
+    feats = pd.Series(feats).sort_values()
+    if use_top is not None:
+        feats = feats[-use_top:]
+    feats.plot(kind="barh", ax=ax)
     ax = plt.gca()
     sns.despine()
     ax.set_title(title)
