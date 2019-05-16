@@ -10,7 +10,9 @@ e1839a8 = {editable = true,path = "."}
 atomicwrites = "*"
 hashfile = "*"
 pandas = "*"
+urllib3 = ">=1.24.2"
 utils = {editable = true,path = "."}
+
 
 [requires]
 python_version = "3.7"
