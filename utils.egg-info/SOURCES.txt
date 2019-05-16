@@ -8,7 +8,6 @@ docker-compose.yml
 drun_app
 setup.py
 tests/tests.py
-tests/utils_tests.py
 utils/__init__.py
 utils.egg-info/PKG-INFO
 utils.egg-info/SOURCES.txt
@@ -22,6 +21,7 @@ utils/financial/__init__.py
 utils/geospatial/__init__.py
 utils/io/__init__.py
 utils/ml/__init__.py
+utils/ml/abstractions/__init__.py
 utils/ml/metrics/__init__.py
 utils/ml/pipeline/__init__.py
 utils/plotting/__init__.py
