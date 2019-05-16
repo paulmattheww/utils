@@ -20,6 +20,9 @@ utils/datetime/__init__.py
 utils/financial/__init__.py
 utils/geospatial/__init__.py
 utils/io/__init__.py
+utils/luigi/__init__.py
+utils/luigi/target.py
+utils/luigi/task.py
 utils/ml/__init__.py
 utils/ml/abstractions/__init__.py
 utils/ml/metrics/__init__.py
