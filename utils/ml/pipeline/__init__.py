@@ -21,6 +21,7 @@ from nltk import WordNetLemmatizer
 from nltk import sent_tokenize
 from nltk import pos_tag
 from six import string_types
+from textblob import TextBlob
 
 class NLTKPreprocessor(BaseEstimator, TransformerMixin):
     """Part of speech tagger using NLTK from the blog
@@ -656,3 +657,11 @@ class RecombineBigrams(BaseEstimator, TransformerMixin):
         return self
     def transform(self, X, y=None):
         return [' '.join(x) for x in X]
+
+
+class SpellingCorrectionTransformer(TransformerMixin):
+    def fit(self, X, y=None):
+        return self
+    def transform(self, X, y=None):
+        blob_docs = [TextBlob(doc) for doc in X]
+        return [doc.correct() for doc in blob_docs]
