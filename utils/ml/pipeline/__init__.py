@@ -665,3 +665,78 @@ class SpellingCorrectionTransformer(TransformerMixin):
     def transform(self, X, y=None):
         blob_docs = [TextBlob(doc) for doc in X]
         return [doc.correct() for doc in blob_docs]
+
+
+class TextNormalizer(TransformerMixin):
+    '''All x in X must be of type str'''
+
+    def __init__(self, lowercase=True, punctuation=punctuation,
+                stopwords=stop_words, numerics=True):
+        self.stopwords = stopwords
+        self.punctuation = punctuation
+        self.lowercase = lowercase
+        self.numerics = numerics
+
+    def drop_newlines(self, X, y=None):
+        docs = [doc.replace('\r', ' ') for doc in X]
+        docs = [doc.replace('\\n', ' ') for doc in docs]
+        docs = [doc.replace('\n', ' ') for doc in docs]
+        return docs
+
+    def to_lowercase(self, X, y=None):
+        if self.lowercase:
+            return [x.lower() for x in X]
+        return X
+
+    def drop_punctuation(self, X, y=None):
+        if self.punctuation is None:
+            return X
+        return [x.translate(str.maketrans(' ', ' ', self.punctuation)) for x in X]
+
+    def drop_stopwords(self, X, y=None):
+        if len(self.stopwords) == 0:
+            return X
+        return [' '.join([word for word in doc.split() if word not in self.stopwords]) for doc in X]
+
+    def drop_numerics(self, X, y=None):
+        if not self.numerics:
+            return [' '.join(word for word in doc.split() if word.isdigit() == False) for doc in X]
+#             return [' '.join(word for word in doc.split() if any(char.isdigit() for char in set(word)) == False) for doc in X]
+#             return [' '.join(word for word in doc.split() if bool(re.search(r'\d', word)) == False) for doc in X]
+        return X
+
+    def drop_repeats(self, X, y=None):
+        return [re.sub(r'((.)\2{2,})', ' ', doc) for doc in X]
+
+    def basic_dlp_str(self, text):
+
+        re_dict = dict(basic_ssn_format = [r"\d{3}-\d{2}-\d{4}", " <SSN> "],
+                       basic_ssn_nodashes_format = [r"\d{9}", " <SSN> "],
+                       basic_ssn_per_format = [r"\d{3}.\d{2}.\d{4}", " <SSN> "],
+                       basic_tel10_format = [r"\d{3}-\d{3}-\d{4}", " <TELEPHONE> "],
+                       basic_tel10_par_format = [r"\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}", " <TELEPHONE> "],
+                       basic_tel10_dot_format = [r"\d{3}.\d{3}.\d{4}", " <TELEPHONE> "],
+                       basic_tel10_nodashes_format = [r"\d{10}", " <TELEPHONE> "],
+                       basic_tel7_format = [r"\d{3}-\d{4}", " <TELEPHONE> "],
+                       basic_tel7_nodashes_format = [r"\d{7}", " <TELEPHONE> "],
+                       )
+        for k, criteria in re_dict.items():
+            pattern = re.compile(criteria[0])
+            text = re.sub(pattern, criteria[1], text)
+        return text
+
+    def dlp_vector(self, texts):
+        return [self.basic_dlp_str(doc) for doc in texts]
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X, y=None):
+        docs = self.drop_repeats(X)
+        docs = self.drop_newlines(docs)
+        docs = self.drop_punctuation(docs)
+        docs = self.to_lowercase(docs)
+        docs = self.drop_stopwords(docs)
+        docs = self.dlp_vector(docs)
+        docs = self.drop_numerics(docs)
+        return docs
