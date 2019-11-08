@@ -2,6 +2,7 @@ from random import randrange
 from contextlib import contextmanager
 import io
 
+from luigi import Task, ExternalTask
 from luigi.local_target import LocalTarget, atomic_file
 from luigi.format import FileWrapper, Nop
 
