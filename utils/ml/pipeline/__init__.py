@@ -740,3 +740,88 @@ class TextNormalizer(TransformerMixin):
         docs = self.dlp_vector(docs)
         docs = self.drop_numerics(docs)
         return docs
+
+
+class DocumentCharacteristicTransformer(TransformerMixin):
+    def __init__(self, lang_model='en_core_web_sm', drop_numerics=True, drop_datetimes=True):
+        self.lang_model = lang_model
+        self.drop_numerics = drop_numerics
+        self.drop_datetimes = drop_datetimes
+    def fit(self, X, y=None):
+        return self
+    def spacy_profile(self, X, y=None):
+        '''
+        Each record has this information at each document to work off of:
+                           dep ent_iob ent_type is_alpha is_stop     lemma    pos shape  \
+            \n                       O             False   False        \n  SPACE    \n
+            '            punct       O             False   False         '  PUNCT     '
+            workwell      amod       O              True   False  workwell    ADJ  xxxx
+            patient       amod       O              True   False   patient    ADJ  xxxx
+            china     compound       O              True   False     china   NOUN  xxxx
+
+                      tag      text  text_eq_lemma
+            \n        _SP        \n           True
+            '          ``         '           True
+            workwell   JJ  workwell           True
+            patient    JJ   patient           True
+            china      NN     china           True
+
+        The output array is in this format (using identical docs below):
+                    pct_not_in_dictionary  pct_in_dictionary       ADJ       ADP      ADV  \
+            0  1.0                    0.0                1.0  0.164087  0.006192  0.03096
+            1  1.0                    0.0                1.0  0.164087  0.006192  0.03096
+            2  1.0                    0.0                1.0  0.164087  0.006192  0.03096
+            3  1.0                    0.0                1.0  0.164087  0.006192  0.03096
+            4  1.0                    0.0                1.0  0.164087  0.006192  0.03096
+
+                   INTJ      NOUN      PART      PRON    PROPN     PUNCT     SPACE  \
+            0  0.006192  0.517028  0.003096  0.009288  0.01548  0.006192  0.086687
+            1  0.006192  0.517028  0.003096  0.009288  0.01548  0.006192  0.086687
+            2  0.006192  0.517028  0.003096  0.009288  0.01548  0.006192  0.086687
+            3  0.006192  0.517028  0.003096  0.009288  0.01548  0.006192  0.086687
+            4  0.006192  0.517028  0.003096  0.009288  0.01548  0.006192  0.086687
+
+                   VERB        X  n_unique_words  n_words  total_to_unique
+            0  0.123839  0.03096           190.0    314.0         1.652632
+            1  0.123839  0.03096           190.0    314.0         1.652632
+            2  0.123839  0.03096           190.0    314.0         1.652632
+            3  0.123839  0.03096           190.0    314.0         1.652632
+            4  0.123839  0.03096           190.0    314.0         1.652632
+        '''
+        nlp = spacy.load(self.lang_model)
+        docs = dict()
+        for i, x in enumerate(X):
+            doc = nlp(x)
+            pos = dict()
+            for token in doc:
+                pos[token] = dict(text=token.text, lemma=token.lemma_, pos=token.pos_,
+                                  tag=token.tag_, dep=token.dep_, shape=token.shape_,
+                                  is_alpha=token.is_alpha, is_stop=token.is_stop,
+                                  ent_type=token.ent_type_, ent_iob=token.ent_iob_,
+                                  token_in_vocab=str(int((token.text in nlp.vocab) or (token.orth in nlp.vocab))))
+
+            # compile the data tags
+            pos_df = pd.DataFrame(pos).T
+            pos_df['text_eq_lemma'] = pos_df.text == pos_df.lemma
+
+            # drop numerics & datetimes
+            if self.drop_numerics:
+                pos_df = pos_df.loc[(pos_df.pos != 'NUM') | (pos_df.ent_type != 'CARDINAL')]
+            if self.drop_datetimes:
+                pos_df = pos_df.loc[~pos_df.ent_type.isin(['DATE', 'TIME'])]
+
+            # compile
+            a = (pos_df.pos.value_counts() / pos_df.shape[0]).to_dict()
+            b = (pos_df.ent_type.value_counts() / pos_df.shape[0]).to_dict()
+            c = (pos_df.token_in_vocab.value_counts() / pos_df.shape[0]).to_dict()
+            if '0' not in c.keys():
+                c['0'] = 0.
+            d = {'n_unique_words': len(set(x.split())), 'n_words': len(x.split())}
+            d['total_to_unique'] = d['n_words'] / d['n_unique_words']
+            docs[i] = dict(**a, **b, **c, **d)
+        docs_df = pd.DataFrame(docs).T.fillna(0.)
+        docs_df.rename(columns={'0': 'pct_not_in_dictionary', '1': 'pct_in_dictionary'}, inplace=True)
+        return docs_df
+
+    def transform(self, X, y=None):
+        return self.spacy_profile(X)
