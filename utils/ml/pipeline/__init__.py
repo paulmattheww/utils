@@ -12,6 +12,9 @@ from tld import get_tld
 from sklearn.decomposition import PCA
 from gensim import models
 from gensim.models import doc2vec
+from gensim.sklearn_api.phrases import PhrasesTransformer
+from gensim.models import Phrases
+from gensim.corpora import Dictionary
 import nltk
 from nltk.stem.snowball import SnowballStemmer
 from nltk.corpus import stopwords as sw
@@ -825,3 +828,109 @@ class DocumentCharacteristicTransformer(TransformerMixin):
 
     def transform(self, X, y=None):
         return self.spacy_profile(X)
+
+
+class SpacyTransformer(TransformerMixin):
+    def __init__(self, lang_model='en', custom_stopwords=[],
+                 phrases_kwargs=dict(min_count=3, threshold=5)):
+        self.lang_model = lang_model
+        self.nlp = spacy.load(lang_model)
+        self.custom_stopwords = custom_stopwords
+        self.phrases_kwargs = phrases_kwargs
+        if len(custom_stopwords) > 0:
+            for stopword in custom_stopwords:
+                lexeme = self.nlp.vocab[stopword]
+                lexeme.is_stop = True
+    def basic_cleaning(self, X, y=None):
+        docs = list()
+        for doc in X:
+            doc, out_doc = self.nlp(doc), list()
+            for word in doc:
+                if not word.is_stop and not word.is_punct and not word.like_num:
+                    out_doc.append(word.lemma_)
+            docs.append(out_doc)
+        return docs
+    def extract_bigrams(self, X, y=None):
+        return PhrasesTransformer(**self.phrases_kwargs).fit_transform(X)
+    def fit(self, X, y=None):
+        return self
+    def transform(self, X, y=None):
+        texts = self.basic_cleaning(X)
+        texts = self.extract_bigrams(texts)
+        setattr(self, 'text', texts)
+        setattr(self, 'dictionary', Dictionary(texts))
+        setattr(self, 'corpus', [self.dictionary.doc2bow(text) for text in texts])
+        return [' '.join(text) for text in texts]
+
+
+class TextNormalizer(TransformerMixin):
+    '''All x in X must be of type str'''
+
+    def __init__(self, lowercase=True, punctuation=punctuation,
+                stopwords=stop_words, numerics=True):
+        self.stopwords = stopwords
+        self.punctuation = punctuation
+        self.lowercase = lowercase
+        self.numerics = numerics
+
+    def drop_newlines(self, X, y=None):
+        docs = [doc.replace('\r', ' ') for doc in X]
+        docs = [doc.replace('\\n', ' ') for doc in docs]
+        docs = [doc.replace('\n', ' ') for doc in docs]
+        return docs
+
+    def to_lowercase(self, X, y=None):
+        if self.lowercase:
+            return [x.lower() for x in X]
+        return X
+
+    def drop_punctuation(self, X, y=None):
+        if self.punctuation is None:
+            return X
+        return [x.translate(str.maketrans(' ', ' ', self.punctuation)) for x in X]
+
+    def drop_stopwords(self, X, y=None):
+        if len(self.stopwords) == 0:
+            return X
+        return [' '.join([word for word in doc.split() if word not in self.stopwords]) for doc in X]
+
+    def drop_numerics(self, X, y=None):
+        if not self.numerics:
+            return [' '.join(word for word in doc.split() if word.isdigit() == False) for doc in X]
+        return X
+
+    def drop_repeats(self, X, y=None):
+        return [re.sub(r'((.)\2{2,})', ' ', doc) for doc in X]
+
+    def basic_dlp_str(self, text):
+
+        re_dict = dict(basic_ssn_format = [r"\d{3}-\d{2}-\d{4}", " "],
+                       basic_ssn_nodashes_format = [r"\d{9}", " "],
+                       basic_ssn_per_format = [r"\d{3}.\d{2}.\d{4}", " "],
+                       basic_tel10_format = [r"\d{3}-\d{3}-\d{4}", " "],
+                       basic_tel10_par_format = [r"\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}", " "],
+                       basic_tel10_dot_format = [r"\d{3}.\d{3}.\d{4}", " "],
+                       basic_tel10_nodashes_format = [r"\d{10}", " "],
+                       basic_tel7_format = [r"\d{3}-\d{4}", " "],
+                       basic_tel7_nodashes_format = [r"\d{7}", " "],
+                       )
+        for k, criteria in re_dict.items():
+            pattern = re.compile(criteria[0])
+            text = re.sub(pattern, criteria[1], text)
+        return text
+
+    def dlp_vector(self, texts):
+        return [self.basic_dlp_str(doc) for doc in texts]
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X, y=None):
+        docs = self.drop_repeats(X)
+        docs = self.drop_newlines(docs)
+        docs = self.drop_punctuation(docs)
+        docs = self.to_lowercase(docs)
+        docs = self.drop_stopwords(docs)
+        docs = self.dlp_vector(docs)
+        docs = self.drop_numerics(docs)
+        return docs
