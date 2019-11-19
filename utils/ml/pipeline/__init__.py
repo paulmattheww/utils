@@ -1,6 +1,7 @@
 import re
 import string
 from time import time
+import multiprocessing
 
 import pandas as pd
 import numpy as np
@@ -25,6 +26,146 @@ from nltk import sent_tokenize
 from nltk import pos_tag
 from six import string_types
 from textblob import TextBlob
+from pycontractions import Contractions
+from dask import dataframe as dd
+import tensorflow_hub as hub
+import tensorflow as tf
+from bert_embedding import BertEmbedding
+
+N_CPUS = multiprocessing.cpu_count()
+
+
+class BertTransformer(TransformerMixin):
+    def fit(self, X, y=None):
+        return self
+    def transform(self, X, y=None):
+        bert_embedding = BertEmbedding()
+        result = bert_embedding(X)
+        return np.array([i[1][0] for i in result])
+
+
+class UniversalSentenceEmbeddingTransformer(TransformerMixin):
+    def __init__(self, verbose=0):
+        self.verbose = verbose
+
+    def fetch_universal_sentence_embeddings(self, messages):
+        """Fetches universal sentence embeddings from Google's
+        research paper https://arxiv.org/pdf/1803.11175.pdf.
+        INPUTS:
+        RETURNS:
+        """
+        module_url = "https://tfhub.dev/google/universal-sentence-encoder/2" #@param ["https://tfhub.dev/google/universal-sentence-encoder/2", "https://tfhub.dev/google/universal-sentence-encoder-large/3"]
+
+        # Import the Universal Sentence Encoder's TF Hub module
+        embed = hub.Module(module_url)
+
+        with tf.Session() as session:
+            session.run([tf.global_variables_initializer(), tf.tables_initializer()])
+            message_embeddings = session.run(embed(messages))
+            embeddings = list()
+            for i, message_embedding in enumerate(np.array(message_embeddings).tolist()):
+                if self.verbose:
+                    print("Message: {}".format(messages[i]))
+                    print("Embedding size: {}".format(len(message_embedding)))
+                    message_embedding_snippet = ", ".join(
+                        (str(x) for x in message_embedding[:3]))
+                    print("Embedding: [{}, ...]\n".format(message_embedding_snippet))
+                embeddings.append(message_embedding)
+        return embeddings
+
+    def fit(self, X, y=None):
+        """interface conforming, and allows use of fit_transform"""
+        return self
+
+    def transform(self, X):
+        return self.fetch_universal_sentence_embeddings(messages=X)
+
+
+
+class DaskTextNormalizer(TransformerMixin):
+    '''All x in X must be of type str: 1D arrays only'''
+
+    def __init__(self, lowercase=True, punctuation=punctuation,
+                stopwords=stop_words, numerics=True, npartitions=N_CPUS):
+        self.stopwords = stopwords
+        self.punctuation = punctuation
+        self.lowercase = lowercase
+        self.numerics = numerics
+        self.npartitions = npartitions
+
+    def drop_newlines(self, X, y=None):
+        ddX = dd.from_pandas(pd.DataFrame({'X': X}), npartitions=self.npartitions)
+        ddX.X = ddX.X.apply(lambda x: x.replace('\r', ' '), meta=('X', 'str'))
+        ddX.X = ddX.X.apply(lambda x: x.replace('\\n', ' '), meta=('X', 'str'))
+        ddX.X = ddX.X.apply(lambda x: x.replace('\r', ' '), meta=('X', 'str'))
+        return ddX.X.compute().values
+
+    def to_lowercase(self, X, y=None):
+        ddX = dd.from_pandas(pd.DataFrame({'X': X}), npartitions=self.npartitions)
+        if self.lowercase:
+            return ddX.X.apply(lambda x: x.lower(), meta=('X', 'str')).compute().values
+        return X
+
+    def drop_punctuation(self, X, y=None):
+        ddX = dd.from_pandas(pd.DataFrame({'X': X}), npartitions=self.npartitions)
+        if self.punctuation is None:
+            return X
+        return ddX.X.apply(lambda x: x.translate(str.maketrans(' ', ' ', self.punctuation)),
+                          meta=('X', 'str')).compute().values
+
+    def drop_stopwords(self, X, y=None):
+        ddX = dd.from_pandas(pd.DataFrame({'X': X}), npartitions=self.npartitions)
+        if len(self.stopwords) == 0:
+            return X
+        return ddX.X.apply(lambda doc: ' '.join([word for word in doc.split() if word not in self.stopwords]),
+                          meta=('X', 'str')).compute().values
+
+    def drop_numerics(self, X, y=None):
+        ddX = dd.from_pandas(pd.DataFrame({'X': X}), npartitions=self.npartitions)
+        if not self.numerics:
+            return ddX.X.apply(lambda doc: ' '.join(word for word in doc.split() if word.isdigit() == False),
+                          meta=('X', 'str')).compute().values
+        return X
+
+    def drop_repeats(self, X, y=None):
+        ddX = dd.from_pandas(pd.DataFrame({'X': X}), npartitions=self.npartitions)
+        return ddX.X.apply(lambda doc: re.sub(r'((.)\2{2,})', ' ', doc),
+                          meta=('X', 'str')).compute().values
+
+    def basic_dlp_str(self, text):
+
+        re_dict = dict(basic_ssn_format = [r"\d{3}-\d{2}-\d{4}", " "],
+                       basic_ssn_nodashes_format = [r"\d{9}", " "],
+                       basic_ssn_per_format = [r"\d{3}.\d{2}.\d{4}", " "],
+                       basic_tel10_format = [r"\d{3}-\d{3}-\d{4}", " "],
+                       basic_tel10_par_format = [r"\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}", " "],
+                       basic_tel10_dot_format = [r"\d{3}.\d{3}.\d{4}", " "],
+                       basic_tel10_nodashes_format = [r"\d{10}", " "],
+                       basic_tel7_format = [r"\d{3}-\d{4}", " "],
+                       basic_tel7_nodashes_format = [r"\d{7}", " "],
+                       )
+        for k, criteria in re_dict.items():
+            pattern = re.compile(criteria[0])
+            text = re.sub(pattern, criteria[1], text)
+        return text
+
+    def dlp_vector(self, X):
+        ddX = dd.from_pandas(pd.DataFrame({'X': X}), npartitions=self.npartitions)
+        return ddX.X.apply(lambda x: self.basic_dlp_str(x),
+                          meta=('X', 'str')).compute().values
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X, y=None):
+        docs = self.drop_repeats(X)
+        docs = self.drop_newlines(docs)
+        docs = self.drop_punctuation(docs)
+        docs = self.to_lowercase(docs)
+        docs = self.drop_stopwords(docs)
+        docs = self.dlp_vector(docs)
+        docs = self.drop_numerics(docs)
+        return docs
 
 class NLTKPreprocessor(BaseEstimator, TransformerMixin):
     """Part of speech tagger using NLTK from the blog
@@ -934,3 +1075,28 @@ class TextNormalizer(TransformerMixin):
         docs = self.dlp_vector(docs)
         docs = self.drop_numerics(docs)
         return docs
+
+
+class ContractionsExpander(TransformerMixin):
+    def __init__(self, kv_model=None, api_key='glove-twitter-100', precise=False):
+        self.kv_model = kv_model
+        self.api_key = api_key
+        self.precise = precise
+        if api_key:
+            self.contractions = Contractions(api_key=api_key)
+        else:
+            self.contractions = Contractions(kv_model=kv_model)
+        self.contractions.load_models()
+    def fit(self, X, y=None):
+        return self
+    def transform(self, X, y=None):
+        return self.contractions.expand_texts(X)
+
+
+class TruncateText(TransformerMixin):
+    def __init__(self, nchar=1000):
+        self.nchar = nchar
+    def fit(self, X, y=None):
+        return self
+    def transform(self, X, y=None):
+        return [x[-self.nchar:] for x in X]
