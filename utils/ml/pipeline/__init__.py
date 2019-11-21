@@ -85,52 +85,50 @@ class UniversalSentenceEmbeddingTransformer(TransformerMixin):
 class DaskTextNormalizer(TransformerMixin):
     '''All x in X must be of type str: 1D arrays only'''
 
-    def __init__(self, lowercase=True, punctuation=punctuation,
-                stopwords=stop_words, numerics=True, npartitions=N_CPUS):
+    def __init__(self, lowercase=True, punctuation=punctuation, stopwords=stop_words,
+                 numerics=True, npartitions=N_CPUS):
         self.stopwords = stopwords
         self.punctuation = punctuation
         self.lowercase = lowercase
         self.numerics = numerics
         self.npartitions = npartitions
 
-    def drop_newlines(self, X, y=None):
-        ddX = dd.from_pandas(pd.DataFrame({'X': X}), npartitions=self.npartitions)
+    def drop_repeats(self, ddX, y=None):
+        ddX.X = ddX.X.apply(lambda doc: re.sub(r'((.)\2{2,})', ' ', doc), meta=('X', 'str'))
+        return ddX
+
+    def drop_newlines(self, ddX, y=None):
         ddX.X = ddX.X.apply(lambda x: x.replace('\r', ' '), meta=('X', 'str'))
         ddX.X = ddX.X.apply(lambda x: x.replace('\\n', ' '), meta=('X', 'str'))
         ddX.X = ddX.X.apply(lambda x: x.replace('\r', ' '), meta=('X', 'str'))
-        return ddX.X.compute().values
+        return ddX
 
-    def to_lowercase(self, X, y=None):
-        ddX = dd.from_pandas(pd.DataFrame({'X': X}), npartitions=self.npartitions)
+    def to_lowercase(self, ddX, y=None):
         if self.lowercase:
-            return ddX.X.apply(lambda x: x.lower(), meta=('X', 'str')).compute().values
-        return X
+            ddX.X = ddX.X.apply(lambda x: x.lower(), meta=('X', 'str'))
+            return ddX
+        return ddX
 
-    def drop_punctuation(self, X, y=None):
-        ddX = dd.from_pandas(pd.DataFrame({'X': X}), npartitions=self.npartitions)
+    def drop_punctuation(self, ddX, y=None):
         if self.punctuation is None:
-            return X
-        return ddX.X.apply(lambda x: x.translate(str.maketrans(' ', ' ', self.punctuation)),
-                          meta=('X', 'str')).compute().values
+            return ddX
+        ddX.X = ddX.X.apply(lambda x: x.translate(str.maketrans(' ', ' ', self.punctuation)),
+                          meta=('X', 'str'))
+        return ddX
 
-    def drop_stopwords(self, X, y=None):
-        ddX = dd.from_pandas(pd.DataFrame({'X': X}), npartitions=self.npartitions)
+    def drop_stopwords(self, ddX, y=None):
         if len(self.stopwords) == 0:
-            return X
-        return ddX.X.apply(lambda doc: ' '.join([word for word in doc.split() if word not in self.stopwords]),
-                          meta=('X', 'str')).compute().values
+            return ddX
+        ddX.X = ddX.X.apply(lambda doc: ' '.join([word for word in doc.split() if word not in self.stopwords]),
+                          meta=('X', 'str'))
+        return ddX
 
-    def drop_numerics(self, X, y=None):
-        ddX = dd.from_pandas(pd.DataFrame({'X': X}), npartitions=self.npartitions)
+    def drop_numerics(self, ddX, y=None):
         if not self.numerics:
-            return ddX.X.apply(lambda doc: ' '.join(word for word in doc.split() if word.isdigit() == False),
-                          meta=('X', 'str')).compute().values
-        return X
-
-    def drop_repeats(self, X, y=None):
-        ddX = dd.from_pandas(pd.DataFrame({'X': X}), npartitions=self.npartitions)
-        return ddX.X.apply(lambda doc: re.sub(r'((.)\2{2,})', ' ', doc),
-                          meta=('X', 'str')).compute().values
+            ddX.X = ddX.X.apply(lambda doc: ' '.join(word for word in doc.split() if word.isdigit() == False),
+                          meta=('X', 'str'))
+            return ddX
+        return ddX
 
     def basic_dlp_str(self, text):
 
@@ -149,23 +147,23 @@ class DaskTextNormalizer(TransformerMixin):
             text = re.sub(pattern, criteria[1], text)
         return text
 
-    def dlp_vector(self, X):
-        ddX = dd.from_pandas(pd.DataFrame({'X': X}), npartitions=self.npartitions)
-        return ddX.X.apply(lambda x: self.basic_dlp_str(x),
-                          meta=('X', 'str')).compute().values
+    def dlp_vector(self, ddX):
+        ddX.X = ddX.X.apply(lambda x: self.basic_dlp_str(x), meta=('X', 'str'))
+        return ddX
 
     def fit(self, X, y=None):
         return self
 
     def transform(self, X, y=None):
-        docs = self.drop_repeats(X)
+        docs = dd.from_pandas(pd.DataFrame({'X': X}), npartitions=self.npartitions)
+        docs = self.drop_repeats(docs)
         docs = self.drop_newlines(docs)
         docs = self.drop_punctuation(docs)
         docs = self.to_lowercase(docs)
         docs = self.drop_stopwords(docs)
         docs = self.dlp_vector(docs)
         docs = self.drop_numerics(docs)
-        return docs
+        return docs.X.compute().values
 
 class NLTKPreprocessor(BaseEstimator, TransformerMixin):
     """Part of speech tagger using NLTK from the blog

@@ -1,7 +1,8 @@
-from sklearn.metrics import confusion_matrix
 from pandas import DataFrame
 import pandas as pd
 import numpy as np
+from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import roc_auc_score, f1_score, recall_score, accuracy_score
 
 def analyze_binary_prediction_probabilities(model, X, y, bins=10):
     '''Compiles predictions vs. actuals for a binary model
@@ -120,3 +121,18 @@ def multiclass_confusion_matrix(y, yhat, model_name='unspecified',
         return None
 
     return cm, metrics
+
+
+
+def classification_performance(y_true, y_pred):
+    acc = accuracy_score(y_true, y_pred)
+    auc = roc_auc_score(y_true, y_pred)
+    f1 = f1_score(y_true, y_pred)
+    print('')
+    print(classification_report(y_true, y_pred))
+    print('')
+    cm = pd.DataFrame(confusion_matrix(y_true, y_pred)).T
+    cm.index = ['pred_' + str(i) for i in cm.index]
+    cm.columns = ['true_' + str(c) for c in cm.columns]
+    print(cm)
+    return dict(acc=acc, auc=auc, f1=f1)
