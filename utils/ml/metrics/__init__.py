@@ -3,6 +3,21 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import confusion_matrix, classification_report
 from sklearn.metrics import roc_auc_score, f1_score, recall_score, accuracy_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_squared_log_error, r2_score
+
+def regressor_performance(y, y_pred):
+    mae = mean_absolute_error(y, y_pred)
+    mse = mean_squared_error(y, y_pred)
+    try:
+        msle = mean_squared_log_error(y, y_pred)
+    except ValueError:
+        print('Adjusting RMSLE: Values Below Zero')
+        incr = (0 + np.min(y))*-1 + 1
+        msle = mean_squared_log_error(y + incr, y_pred + incr)
+    r2 = r2_score(y, y_pred)
+    return dict(mae=mae, mse=mse, msle=msle, r2=r2)
+
 
 def analyze_binary_prediction_probabilities(model, X, y, bins=10):
     '''Compiles predictions vs. actuals for a binary model
